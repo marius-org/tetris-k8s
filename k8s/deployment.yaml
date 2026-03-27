@@ -1,0 +1,38 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: tetris
+  namespace: tetris
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: tetris
+  template:
+    metadata:
+      labels:
+        app: tetris
+    spec:
+      containers:
+      - name: tetris
+        image: mariuseu/tetris-k8s:latest
+        ports:
+        - containerPort: 8000
+        env:
+        - name: DB_HOST
+          value: "postgres"
+        - name: DB_NAME
+          valueFrom:
+            secretKeyRef:
+              name: tetris-db-secret
+              key: DB_NAME
+        - name: DB_USER
+          valueFrom:
+            secretKeyRef:
+              name: tetris-db-secret
+              key: DB_USER
+        - name: DB_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: tetris-db-secret
+              key: DB_PASSWORD

@@ -7,7 +7,7 @@ on:
 
 jobs:
   build-and-push:
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, Linux, X64]
 
     steps:
       - name: Checkout code
@@ -26,4 +26,8 @@ jobs:
           push: true
           tags: |
             ${{ secrets.DOCKERHUB_USERNAME }}/tetris-k8s:latest
-            ${{ secrets.DOCKERHUB_USERNAME }}/tetris-k8s:${{ github.run_number }}
+            ${{ secrets.DOCKERHUB_USERNAME }}/tetris-k8s:v${{ github.run_number }}
+
+      - name: Deploy to Kubernetes
+        run: |
+          kubectl set image deployment/tetris tetris=${{ secrets.DOCKERHUB_USERNAME }}/tetris-k8s:v${{ github.run_number }} -n tetris
