@@ -1,0 +1,487 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>K8S TETRIS</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #0a0a0f;
+      --panel: #12121a;
+      --border: #2a2a3d;
+      --glow-cyan: #00f5ff;
+      --glow-pink: #ff006e;
+      --glow-yellow: #ffbe0b;
+      --text: #e0e0ff;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Press Start 2P', monospace;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+    }
+
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background:
+        radial-gradient(ellipse at 20% 50%, rgba(0,245,255,0.05) 0%, transparent 60%),
+        radial-gradient(ellipse at 80% 20%, rgba(255,0,110,0.05) 0%, transparent 60%);
+      pointer-events: none;
+    }
+
+    h1 {
+      font-size: 1.4rem;
+      letter-spacing: 6px;
+      margin-bottom: 24px;
+      color: var(--glow-cyan);
+      text-shadow: 0 0 20px var(--glow-cyan), 0 0 40px var(--glow-cyan);
+      animation: pulse 2s ease-in-out infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.7; }
+    }
+
+    .game-wrapper {
+      display: flex;
+      gap: 24px;
+      align-items: flex-start;
+    }
+
+    canvas {
+      border: 2px solid var(--glow-cyan);
+      box-shadow: 0 0 20px var(--glow-cyan), inset 0 0 20px rgba(0,245,255,0.03);
+      display: block;
+      image-rendering: pixelated;
+    }
+
+    .side-panel {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      width: 160px;
+    }
+
+    .panel-box {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      padding: 14px;
+      border-radius: 4px;
+    }
+
+    .panel-box h3 {
+      font-size: 0.45rem;
+      color: var(--glow-pink);
+      text-shadow: 0 0 10px var(--glow-pink);
+      letter-spacing: 2px;
+      margin-bottom: 10px;
+    }
+
+    .panel-box p {
+      font-size: 0.65rem;
+      color: var(--glow-yellow);
+      text-shadow: 0 0 8px var(--glow-yellow);
+    }
+
+    #next-canvas {
+      border: 1px solid var(--border);
+      display: block;
+      margin-top: 8px;
+    }
+
+    .scores-list {
+      list-style: none;
+      margin-top: 8px;
+    }
+
+    .scores-list li {
+      font-size: 0.35rem;
+      color: var(--text);
+      padding: 3px 0;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      justify-content: space-between;
+      gap: 4px;
+    }
+
+    .scores-list li span.pts {
+      color: var(--glow-yellow);
+    }
+
+    .controls {
+      font-size: 0.35rem;
+      line-height: 2.2;
+      color: #888;
+    }
+
+    .controls span {
+      color: var(--glow-cyan);
+    }
+
+    /* Overlay */
+    #overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(10,10,15,0.92);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 20px;
+      z-index: 10;
+    }
+
+    #overlay h2 {
+      font-size: 1rem;
+      color: var(--glow-pink);
+      text-shadow: 0 0 20px var(--glow-pink);
+      letter-spacing: 4px;
+    }
+
+    #overlay p {
+      font-size: 0.5rem;
+      color: var(--text);
+      letter-spacing: 2px;
+    }
+
+    #overlay input {
+      background: var(--panel);
+      border: 1px solid var(--glow-cyan);
+      color: var(--glow-cyan);
+      font-family: 'Press Start 2P', monospace;
+      font-size: 0.6rem;
+      padding: 10px 14px;
+      outline: none;
+      text-align: center;
+      width: 200px;
+    }
+
+    #overlay button, .btn {
+      background: transparent;
+      border: 2px solid var(--glow-cyan);
+      color: var(--glow-cyan);
+      font-family: 'Press Start 2P', monospace;
+      font-size: 0.55rem;
+      padding: 10px 20px;
+      cursor: pointer;
+      letter-spacing: 2px;
+      transition: all 0.2s;
+      text-shadow: 0 0 8px var(--glow-cyan);
+      box-shadow: 0 0 10px rgba(0,245,255,0.2);
+    }
+
+    #overlay button:hover, .btn:hover {
+      background: var(--glow-cyan);
+      color: var(--bg);
+      box-shadow: 0 0 20px var(--glow-cyan);
+      text-shadow: none;
+    }
+
+    #final-score {
+      font-size: 0.55rem;
+      color: var(--glow-yellow);
+      display: none;
+    }
+  </style>
+</head>
+<body>
+
+<h1>K8S TETRIS</h1>
+
+<div class="game-wrapper">
+  <canvas id="game" width="300" height="600"></canvas>
+
+  <div class="side-panel">
+    <div class="panel-box">
+      <h3>SCORE</h3>
+      <p id="score-display">0</p>
+    </div>
+    <div class="panel-box">
+      <h3>LEVEL</h3>
+      <p id="level-display">1</p>
+    </div>
+    <div class="panel-box">
+      <h3>LINES</h3>
+      <p id="lines-display">0</p>
+    </div>
+    <div class="panel-box">
+      <h3>NEXT</h3>
+      <canvas id="next-canvas" width="80" height="80"></canvas>
+    </div>
+    <div class="panel-box">
+      <h3>TOP 10</h3>
+      <ul class="scores-list" id="scores-list">
+        <li><span>---</span></li>
+      </ul>
+    </div>
+    <div class="panel-box controls">
+      <span>←→</span> MOVE<br>
+      <span>↑</span> ROTATE<br>
+      <span>↓</span> SOFT DROP<br>
+      <span>SPC</span> HARD DROP<br>
+      <span>P</span> PAUSE
+    </div>
+  </div>
+</div>
+
+<!-- Start / Game Over overlay -->
+<div id="overlay">
+  <h2 id="overlay-title">K8S TETRIS</h2>
+  <p id="overlay-sub">ENTER YOUR NAME</p>
+  <p id="final-score"></p>
+  <input id="player-name" type="text" maxlength="12" placeholder="PLAYER" />
+  <button id="start-btn">START GAME</button>
+</div>
+
+<script>
+const COLS = 10, ROWS = 20, BLOCK = 30;
+const COLORS = {
+  I: '#00f5ff', O: '#ffbe0b', T: '#bf5af2',
+  S: '#30d158', Z: '#ff453a', J: '#0a84ff', L: '#ff9f0a'
+};
+const SHAPES = {
+  I: [[1,1,1,1]],
+  O: [[1,1],[1,1]],
+  T: [[0,1,0],[1,1,1]],
+  S: [[0,1,1],[1,1,0]],
+  Z: [[1,1,0],[0,1,1]],
+  J: [[1,0,0],[1,1,1]],
+  L: [[0,0,1],[1,1,1]]
+};
+const PIECES = Object.keys(SHAPES);
+
+const canvas = document.getElementById('game');
+const ctx = canvas.getContext('2d');
+const nextCanvas = document.getElementById('next-canvas');
+const nextCtx = nextCanvas.getContext('2d');
+
+let board, piece, nextPiece, score, level, lines, gameLoop, paused, playerName, gameOver;
+
+function newBoard() {
+  return Array.from({length: ROWS}, () => Array(COLS).fill(null));
+}
+
+function randomPiece() {
+  const type = PIECES[Math.floor(Math.random() * PIECES.length)];
+  return {
+    type, color: COLORS[type],
+    shape: SHAPES[type].map(r => [...r]),
+    x: Math.floor(COLS / 2) - Math.floor(SHAPES[type][0].length / 2),
+    y: 0
+  };
+}
+
+function drawBlock(c, x, y, color, size = BLOCK) {
+  c.fillStyle = color;
+  c.shadowColor = color;
+  c.shadowBlur = 8;
+  c.fillRect(x * size + 1, y * size + 1, size - 2, size - 2);
+  c.shadowBlur = 0;
+  // highlight
+  c.fillStyle = 'rgba(255,255,255,0.15)';
+  c.fillRect(x * size + 2, y * size + 2, size - 4, 4);
+}
+
+function drawBoard() {
+  ctx.fillStyle = '#0a0a0f';
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  // grid
+  ctx.strokeStyle = 'rgba(255,255,255,0.03)';
+  ctx.lineWidth = 1;
+  for (let r = 0; r < ROWS; r++) {
+    for (let c = 0; c < COLS; c++) {
+      ctx.strokeRect(c * BLOCK, r * BLOCK, BLOCK, BLOCK);
+      if (board[r][c]) drawBlock(ctx, c, r, board[r][c]);
+    }
+  }
+}
+
+function drawPiece(p) {
+  p.shape.forEach((row, r) => {
+    row.forEach((v, c) => {
+      if (v) drawBlock(ctx, p.x + c, p.y + r, p.color);
+    });
+  });
+}
+
+function drawGhost() {
+  let ghost = {...piece, shape: piece.shape.map(r => [...r])};
+  while (isValid(ghost, 0, 1)) ghost.y++;
+  ghost.shape.forEach((row, r) => {
+    row.forEach((v, c) => {
+      if (v) {
+        ctx.strokeStyle = piece.color;
+        ctx.lineWidth = 1;
+        ctx.globalAlpha = 0.3;
+        ctx.strokeRect((ghost.x + c) * BLOCK + 1, (ghost.y + r) * BLOCK + 1, BLOCK - 2, BLOCK - 2);
+        ctx.globalAlpha = 1;
+      }
+    });
+  });
+}
+
+function drawNext() {
+  nextCtx.fillStyle = '#12121a';
+  nextCtx.fillRect(0, 0, 80, 80);
+  const size = 16;
+  const offX = Math.floor((5 - nextPiece.shape[0].length) / 2);
+  const offY = Math.floor((5 - nextPiece.shape.length) / 2);
+  nextPiece.shape.forEach((row, r) => {
+    row.forEach((v, c) => {
+      if (v) drawBlock(nextCtx, offX + c, offY + r, nextPiece.color, size);
+    });
+  });
+}
+
+function isValid(p, dx = 0, dy = 0, shape = p.shape) {
+  return shape.every((row, r) =>
+    row.every((v, c) => {
+      if (!v) return true;
+      const nx = p.x + c + dx, ny = p.y + r + dy;
+      return nx >= 0 && nx < COLS && ny < ROWS && (ny < 0 || !board[ny][nx]);
+    })
+  );
+}
+
+function lock() {
+  piece.shape.forEach((row, r) => {
+    row.forEach((v, c) => {
+      if (v) board[piece.y + r][piece.x + c] = piece.color;
+    });
+  });
+  clearLines();
+  piece = nextPiece;
+  nextPiece = randomPiece();
+  if (!isValid(piece)) { endGame(); return; }
+  drawNext();
+}
+
+function clearLines() {
+  let cleared = 0;
+  for (let r = ROWS - 1; r >= 0; r--) {
+    if (board[r].every(c => c)) {
+      board.splice(r, 1);
+      board.unshift(Array(COLS).fill(null));
+      cleared++; r++;
+    }
+  }
+  if (cleared) {
+    const pts = [0, 100, 300, 500, 800][cleared] * level;
+    score += pts;
+    lines += cleared;
+    level = Math.floor(lines / 10) + 1;
+    document.getElementById('score-display').textContent = score;
+    document.getElementById('level-display').textContent = level;
+    document.getElementById('lines-display').textContent = lines;
+  }
+}
+
+function rotate(shape) {
+  return shape[0].map((_, i) => shape.map(r => r[i]).reverse());
+}
+
+function drop() {
+  if (paused || gameOver) return;
+  if (isValid(piece, 0, 1)) { piece.y++; }
+  else { lock(); }
+  render();
+}
+
+function render() {
+  drawBoard();
+  drawGhost();
+  drawPiece(piece);
+}
+
+function startGame() {
+  playerName = document.getElementById('player-name').value.trim() || 'PLAYER';
+  board = newBoard();
+  score = 0; level = 1; lines = 0; paused = false; gameOver = false;
+  piece = randomPiece();
+  nextPiece = randomPiece();
+  document.getElementById('score-display').textContent = 0;
+  document.getElementById('level-display').textContent = 1;
+  document.getElementById('lines-display').textContent = 0;
+  document.getElementById('overlay').style.display = 'none';
+  clearInterval(gameLoop);
+  gameLoop = setInterval(drop, Math.max(100, 600 - (level - 1) * 50));
+  drawNext();
+  render();
+  loadScores();
+}
+
+async function endGame() {
+  gameOver = true;
+  clearInterval(gameLoop);
+  // Save score
+  try {
+    await fetch('/scores', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({player: playerName, score})
+    });
+  } catch(e) {}
+  await loadScores();
+  document.getElementById('overlay-title').textContent = 'GAME OVER';
+  document.getElementById('overlay-sub').textContent = 'YOUR SCORE';
+  document.getElementById('final-score').style.display = 'block';
+  document.getElementById('final-score').textContent = score;
+  document.getElementById('start-btn').textContent = 'PLAY AGAIN';
+  document.getElementById('overlay').style.display = 'flex';
+}
+
+async function loadScores() {
+  try {
+    const res = await fetch('/scores');
+    const data = await res.json();
+    const list = document.getElementById('scores-list');
+    list.innerHTML = data.map((s, i) =>
+      `<li><span>#${i+1} ${s.player.substring(0,6)}</span><span class="pts">${s.score}</span></li>`
+    ).join('') || '<li><span>NO SCORES</span></li>';
+  } catch(e) {}
+}
+
+document.addEventListener('keydown', e => {
+  if (gameOver) return;
+  if (e.key === 'p' || e.key === 'P') { paused = !paused; return; }
+  if (paused) return;
+  switch(e.key) {
+    case 'ArrowLeft':  if (isValid(piece, -1)) { piece.x--; render(); } break;
+    case 'ArrowRight': if (isValid(piece,  1)) { piece.x++; render(); } break;
+    case 'ArrowDown':  drop(); break;
+    case 'ArrowUp': {
+      const r = rotate(piece.shape);
+      if (isValid({...piece, shape: r})) { piece.shape = r; render(); }
+      break;
+    }
+    case ' ': {
+      e.preventDefault();
+      while (isValid(piece, 0, 1)) piece.y++;
+      lock(); render();
+      break;
+    }
+  }
+});
+
+document.getElementById('start-btn').addEventListener('click', startGame);
+document.getElementById('player-name').addEventListener('keydown', e => {
+  if (e.key === 'Enter') startGame();
+});
+
+loadScores();
+</script>
+</body>
+</html>
