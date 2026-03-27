@@ -30,4 +30,4 @@ jobs:
 
       - name: Deploy to Kubernetes
         run: |
-          kubectl set image deployment/tetris tetris=${{ secrets.DOCKERHUB_USERNAME }}/tetris-k8s:v${{ github.run_number }} -n tetris
+          kubectl set image deployment/tetris tetris=${{ secrets.DOCKERHUB_USERNAME }}/tetris-k8s:v${{ github.run_number }} -n tetris --context k8s-vanilla
