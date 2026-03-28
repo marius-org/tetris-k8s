@@ -7,7 +7,7 @@ on:
 
 jobs:
   build-and-push:
-    runs-on: [self-hosted, Linux, X64, devops]
+    runs-on: [self-hosted, devops]
 
     steps:
       - name: Checkout code
