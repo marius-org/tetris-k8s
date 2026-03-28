@@ -1,0 +1,12 @@
+config:
+  inCluster: true
+  inClusterContextName: "main"
+
+volumeMounts:
+  - name: kubeconfig
+    mountPath: /home/headlamp/.config/Headlamp/kubeconfigs
+
+volumes:
+  - name: kubeconfig
+    secret:
+      secretName: headlamp-kubeconfig
