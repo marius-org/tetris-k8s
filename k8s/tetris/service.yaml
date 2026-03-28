@@ -4,7 +4,7 @@ metadata:
   name: tetris
   namespace: tetris
 spec:
-  type: LoadBalancer
+  type: ClusterIP
   selector:
     app: tetris
   ports:
