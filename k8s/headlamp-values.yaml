@@ -1,6 +1,5 @@
 config:
-  inCluster: true
-  inClusterContextName: "main"
+  inCluster: false
 
 volumeMounts:
   - name: kubeconfig
